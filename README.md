@@ -1,4 +1,4 @@
-# 🅿️ Smart Parking License Plate Tracker
+# Smart Parking License Plate Tracker
 
 ![CI](../../actions/workflows/ci.yml/badge.svg)
 
@@ -8,8 +8,6 @@ plates and sends them to our API. The guard's dashboard shows, in real time
 much they need to pay.
 
 **Track 2 – Full Stack DevOps**
-
-**Team:** _name 1_, _name 2_, _name 3_
 
 ---
 
