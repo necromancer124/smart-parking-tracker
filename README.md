@@ -144,5 +144,6 @@ volumes (only `down -v` does).
 ├── .github/workflows/
 │   ├── ci.yml
 │   └── publish.yml
-└── ARCHITECTURE.md
+├── ARCHITECTURE.md
+└── AI_USAGE.md
 ```
