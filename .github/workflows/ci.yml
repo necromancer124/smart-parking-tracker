@@ -1,44 +1,93 @@
-# CI: on every push and pull request, check that the Docker images build,
-# that the whole stack starts, that the API works, and that Redis data
-# survives `docker compose down` + `up` (the volume).
+# =====================================================================
+# CI = "Continuous Integration" = automatic checks
+# =====================================================================
+# GitHub reads this file and runs it by itself. Every time someone
+# uploads code, a robot checks that the whole system still works:
+#   1. the Docker images can be built
+#   2. the whole system starts
+#   3. the API can add a car and show it back
+#   4. the saved data survives a restart
+# If any step fails, GitHub shows a red X next to the commit.
+# If everything passes, it shows a green check mark.
+#
+# Lines that start with "#" are comments. GitHub ignores them.
+# =====================================================================
+
+# The name shown in the "Actions" tab on GitHub.
 name: CI
 
+# WHEN to run this check.
 on:
-  push:
-  pull_request:
+  push:          # every time code is uploaded (pushed), on any branch
+  pull_request:  # every time someone opens or updates a pull request
 
+# A "job" is a list of steps that run one after the other on one computer.
+# This file has only one job.
 jobs:
+  # The job's name (we chose it, it can be anything).
   build-and-test:
+    # GitHub lends us a fresh, empty Linux computer for every run.
+    # It already has Docker installed. When the run ends, it's thrown away.
     runs-on: ubuntu-latest
+
+    # The steps, in order. "name" is what you see on GitHub.
+    # "uses" = run a ready-made step someone else wrote.
+    # "run"  = run our own terminal commands.
     steps:
+      # Step 1: download our project's code onto the borrowed computer.
+      # (The computer starts empty, so without this there's nothing to test.)
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: build the Docker images for all the services
+      # (api, web), following each folder's Dockerfile.
+      # If there's a mistake in a Dockerfile, it fails here.
       - name: Build Docker images
         run: docker compose build
 
+      # Step 3: start the whole system, like we do on our own computer.
+      #   -d     = run in the background, so the next steps can continue
+      #   --wait = don't move on until every service passes its healthcheck
+      #            (Redis answers "ping", the API answers /api/health)
       - name: Start the stack
         run: docker compose up -d --wait
 
+      # Step 4: a quick "does it work at all?" test ("smoke test").
+      # The "|" means the next lines are several commands, run in order.
       - name: Smoke test - add a car and read it back
         run: |
+          # Pretend to be the camera: send a new car to the API.
+          # -f = fail if the server answers with an error
+          # -sS = be quiet, but still show errors
           curl -fsS -X POST http://localhost:8080/api/cars \
             -H "Content-Type: application/json" \
             -d '{"plate":"12-345-67"}'
+          # Ask for the list of cars, show it in the log
+          # and also save it to a file (that's what "tee" does).
           curl -fsS http://localhost:8080/api/cars | tee response.json
+          # Check that our car is in the list.
+          # If it's not there, grep fails, so the whole step fails.
           grep -q '12-345-67' response.json
 
+      # Step 5: check that data isn't lost when the system restarts.
+      # This proves the Redis data is really saved in the volume
+      # and not only inside the container.
       - name: Persistence test - down, up, data still there
         run: |
-          docker compose down          # no -v, so the volume is kept
-          docker compose up -d --wait
+          docker compose down          # stop and delete the containers (no -v, so the saved data is kept)
+          docker compose up -d --wait  # start everything again
+          # The car we added in step 4 should still be in the list.
           curl -fsS http://localhost:8080/api/cars | grep -q '12-345-67'
           echo "Data survived the restart ✔"
 
+      # Step 6: ONLY if something above failed, print the logs of all
+      # the containers, so we can see what went wrong.
       - name: Show logs if something failed
         if: failure()
         run: docker compose logs
 
+      # Step 7: ALWAYS clean up at the end, whether the test passed or not.
+      # Stops everything and deletes the data too (-v).
       - name: Clean up
         if: always()
         run: docker compose down -v
