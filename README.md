@@ -28,7 +28,7 @@ much they need to pay.
 | `web`    | `nginx:1.27-alpine`     | Serves the dashboard and proxies `/api/*` to the API (same origin, no CORS). |
 | `api`    | `node:22-alpine`        | Express REST API: receives plates, computes prices, reads/writes Redis.      |
 | `redis`  | `redis:7.4-alpine`      | The database. AOF persistence (`--appendonly yes`) on the `redis-data` volume. |
-| `camera` | `curlimages/curl`       | *Optional* fake IoT camera that POSTs a random plate every 10 s.              |
+| `camera` | `curlimages/curl` (`camera/`) | *Optional* fake IoT camera (`camera.sh`) that POSTs a random plate every 10 s. |
 
 Only `web` publishes a port (8080). The API and Redis are reachable only
 inside the Compose network.
@@ -124,7 +124,7 @@ volumes (only `down -v` does).
 - **`.github/workflows/publish.yml` (bonus):** on push to the main branch or a
   `v*` tag: logs in to `ghcr.io` with `GITHUB_TOKEN`, tags the images
   automatically (`v1.0.<run>`, `latest`, `sha-…`, and semver for git tags) and
-  pushes `…-api` and `…-web` to GitHub Container Registry.
+  pushes `…-api`, `…-web` and `…-camera` to GitHub Container Registry.
 
 ## Project structure
 
@@ -141,9 +141,13 @@ volumes (only `down -v` does).
 │   ├── index.html
 │   ├── style.css
 │   └── app.js
+├── camera/         Fake IoT camera (optional, --profile camera)
+│   ├── Dockerfile
+│   └── camera.sh
 ├── .github/workflows/
 │   ├── ci.yml
 │   └── publish.yml
 ├── ARCHITECTURE.md
-└── AI_USAGE.md
+├── AI_USAGE.md
+└── CHEATSHEET.md   Commands, demo steps, git how-to
 ```

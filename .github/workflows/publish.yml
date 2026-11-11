@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api, web]
+        service: [api, web, camera]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

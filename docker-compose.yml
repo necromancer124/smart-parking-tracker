@@ -44,26 +44,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Optional fake IoT camera: POSTs a random plate every 10 seconds.
+  # Optional fake IoT camera (camera/): POSTs a random plate every 10 seconds.
   # Only starts with:  docker compose --profile camera up
   camera:
-    image: curlimages/curl:8.11.1
+    build: ./camera
+    image: smart-parking-camera
     profiles: ["camera"]
+    environment:
+      API_URL: http://api:3000/api/cars
+      INTERVAL: 10
     depends_on:
       api:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          PLATE="$$((RANDOM % 900 + 100))-$$((RANDOM % 90 + 10))-$$((RANDOM % 900 + 100))"
-          echo "Camera saw $$PLATE"
-          curl -s -X POST http://api:3000/api/cars \
-            -H "Content-Type: application/json" \
-            -d "{\"plate\":\"$$PLATE\"}"
-          echo
-          sleep 10
-        done
+    restart: unless-stopped
 
 volumes:
   redis-data:
